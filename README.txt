@@ -25,3 +25,5 @@ Once Cloudflare deploys successfully, the Worker URL remains:
 https://aircraft-tracker-proxy.z666h7rrdw.workers.dev
 
 Then open Aircraft Tracker V4 and, if asked once, paste that Worker URL into the proxy field.
+
+V5: Added BUILD_TRIGGER.txt so uploading this full ZIP creates a fresh GitHub commit and triggers Cloudflare.
