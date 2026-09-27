@@ -1,3 +1,2 @@
-Aircraft Tracker V7
-Forces Cloudflare to deploy worker-v7.js instead of the older worker.js.
-Also adds no-cache markers to the tracker page.
+Aircraft Tracker V8
+New worker-v8.js with robust response parsing, 250 NM Atlanta sample search, and diagnostics.

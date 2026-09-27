@@ -1,8 +1,7 @@
-Aircraft Tracker V7
+Aircraft Tracker V8
 
 Upload ALL files in this ZIP to the root of the Aircraft-tracker GitHub repository and commit them.
-V7 intentionally uses a NEW Worker filename: worker-v7.js.
-wrangler.jsonc points Cloudflare to worker-v7.js, which prevents the older worker.js from being reused.
-The tracker page also includes no-cache markers and displays LIVE ADS-B TEST V7 at the top.
+Cloudflare is already connected and should redeploy automatically.
 
-After GitHub commits the upload, Cloudflare should automatically redeploy from the connected repository.
+V8 uses worker-v8.js so Cloudflare cannot reuse an older worker file.
+It searches a 250 NM radius around Atlanta for a currently airborne aircraft and reports provider diagnostics if no sample is returned.
