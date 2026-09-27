@@ -1,6 +1,5 @@
-Aircraft Tracker Test V1
+Aircraft Tracker Test V2
 
-Upload index.html to a new GitHub Pages site.
+Replace the existing index.html in your Aircraft-tracker GitHub repository with this one.
+V2 uses AvioADSB first, then adsb.fi, then ADSB One as fallbacks.
 Temporary test target: AAL118.
-The search box can also try another live callsign or N-number.
-Live data source: ADSB.lol.
