@@ -1,19 +1,27 @@
-Aircraft Tracker V3
+Aircraft Tracker V4
 
-FILES
-- index.html      -> replace the current index.html in the GitHub Aircraft-tracker repository
-- worker.js       -> paste this into a Cloudflare Worker and deploy it
+This version is set up so Cloudflare can deploy the ADS-B proxy directly from the same GitHub repository.
 
-CLOUDFLARE WORKER SETUP
-1. Create/sign in to a Cloudflare account.
-2. Go to Workers & Pages.
-3. Create application -> Create Worker.
-4. Open the Worker editor.
-5. Replace the sample code with worker.js from this ZIP.
-6. Deploy.
-7. Copy the https://...workers.dev URL.
-8. Open Aircraft Tracker V3. It will ask for the Worker URL once.
-9. Paste the Worker URL and tap Save Proxy.
+UPLOAD THESE 4 FILES TO THE ROOT OF YOUR GitHub Aircraft-tracker REPOSITORY:
+- index.html
+- worker.js
+- wrangler.jsonc
+- README.txt
 
-The proxy tries ADSB.lol first, then ADSB One, then adsb.fi.
-The front-end refreshes every 15 seconds.
+CLOUDFLARE GITHUB CONNECTION
+1. Open the existing Cloudflare Worker named aircraft-tracker-proxy.
+2. Settings -> Builds -> Connect Git repository.
+3. Choose GitHub and select the Aircraft-tracker repository.
+4. Root directory: /
+5. Deploy command: npx wrangler deploy
+6. Save/Deploy.
+
+The wrangler.jsonc file tells Cloudflare:
+- Worker name: aircraft-tracker-proxy
+- Worker entry file: worker.js
+- workers.dev enabled
+
+Once Cloudflare deploys successfully, the Worker URL remains:
+https://aircraft-tracker-proxy.z666h7rrdw.workers.dev
+
+Then open Aircraft Tracker V4 and, if asked once, paste that Worker URL into the proxy field.
