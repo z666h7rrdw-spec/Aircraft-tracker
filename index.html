@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#07111f">
-<title>Aircraft Tracker V3</title>
+<title>Aircraft Tracker V6</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#07111f;--card:#0d1b2c;--line:#213750;--text:#eef6ff;--muted:#91a7bd;--blue:#1976d2;--green:#70d39a;--amber:#f0c36b;--red:#ff8b8b}
@@ -25,44 +25,43 @@ button{background:var(--blue);border:0;font-weight:800}
 #map{height:390px;border-radius:14px;overflow:hidden;margin-top:12px;background:#0a1522}
 .note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:9px}
 .hidden{display:none!important}
-.saved{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.saved button{width:auto;padding:10px 14px}
 @media(max-width:520px){#map{height:360px}.metric .value{font-size:19px}}
 </style>
 </head>
 <body><main>
 <div class="row">
-  <div><div class="small">LIVE ADS-B TEST V3</div><h1>Aircraft Tracker</h1></div>
+  <div><div class="small">LIVE ADS-B TEST V6</div><h1>Aircraft Tracker</h1></div>
   <div id="clock" class="small"></div>
 </div>
 
 <div id="setup" class="card hidden">
   <div class="small">ONE-TIME PROXY SETUP</div>
   <div style="font-size:20px;font-weight:900;margin-top:4px">Connect live data proxy</div>
-  <div class="note">Paste the Cloudflare Worker URL once. It will be saved on this device.</div>
-  <input id="proxyInput" placeholder="https://your-worker.your-name.workers.dev" style="margin-top:10px">
+  <input id="proxyInput" placeholder="https://aircraft-tracker-proxy...workers.dev" style="margin-top:10px">
   <button id="saveProxy" style="margin-top:8px">Save Proxy</button>
 </div>
 
 <div class="card">
-  <div class="small">TEMPORARY TEST AIRCRAFT</div>
+  <div class="small">LIVE TEST</div>
+  <button id="sampleBtn">Find a Live Aircraft Now</button>
+  <div class="note">This asks the ADS-B feed for an aircraft that is actually visible right now, so we do not have to guess which airline flight is airborne.</div>
+</div>
+
+<div class="card">
+  <div class="small">SEARCH ANY AIRCRAFT</div>
   <div class="search">
-    <input id="query" value="AAL118" autocapitalize="characters" autocomplete="off" spellcheck="false">
+    <input id="query" value="" placeholder="N826JS or AAL118" autocapitalize="characters" autocomplete="off" spellcheck="false">
     <button id="searchBtn">Track</button>
   </div>
-  <div class="saved">
-    <button class="secondary" onclick="trackSaved('AAL118')">AAL118</button>
-  </div>
-  <div class="note">Once the test works, these become one-tap buttons for your airplanes and your friends' airplanes.</div>
 </div>
 
 <div class="card">
   <div class="row">
     <div>
-      <div id="title" style="font-size:24px;font-weight:900">AAL118</div>
-      <div id="subtitle" class="small">Waiting for live aircraft data…</div>
+      <div id="title" style="font-size:24px;font-weight:900">Waiting</div>
+      <div id="subtitle" class="small">Tap “Find a Live Aircraft Now.”</div>
     </div>
-    <div id="status" class="status warn">CONNECTING</div>
+    <div id="status" class="status warn">READY</div>
   </div>
 
   <div class="grid">
@@ -75,13 +74,13 @@ button{background:var(--blue);border:0;font-weight:800}
   </div>
 
   <div id="map"></div>
-  <div id="seen" class="note">Not received yet.</div>
+  <div id="seen" class="note">No aircraft selected yet.</div>
   <div id="source" class="note"></div>
 </div>
 
 <div class="card">
   <div class="small">TEST ONLY</div>
-  <div class="note">Refreshes every 15 seconds. ADS-B reception can disappear temporarily. Do not use this as a primary navigation or collision-avoidance source.</div>
+  <div class="note">Once this live test succeeds, we can replace the test controls with one-tap buttons for your saved airplanes.</div>
   <button id="changeProxy" class="secondary" style="margin-top:10px">Change Proxy URL</button>
 </div>
 </main>
@@ -89,7 +88,7 @@ button{background:var(--blue);border:0;font-weight:800}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-let timer=null,map=null,marker=null,currentQuery="AAL118";
+let timer=null,map=null,marker=null,currentQuery="";
 const KEY="aircraftTrackerProxyV3";
 
 function getProxy(){
@@ -119,87 +118,109 @@ function icon(track){
   const rot=Number.isFinite(Number(track))?Number(track):0;
   return L.divIcon({className:"",html:`<div style="font-size:30px;transform:rotate(${rot}deg);filter:drop-shadow(0 1px 2px #000)">✈</div>`,iconSize:[34,34],iconAnchor:[17,17]});
 }
+function renderAircraft(a, provider){
+  const flight=String(a.flight||"").trim();
+  const reg=String(a.r||a.reg||"—").trim();
+  const typ=String(a.t||a.type||"—").trim();
+  const label=flight || reg || a.hex || "Live aircraft";
+  const alt=a.alt_baro==="ground"?"GROUND":(a.alt_baro!=null?fmt(a.alt_baro)+" ft":"—");
+  const gs=a.gs!=null?fmt(a.gs)+" kt":"—";
+  const tr=a.track!=null?fmt(a.track)+"°":"—";
+  const vr=a.baro_rate!=null?((Number(a.baro_rate)>0?"+":"")+fmt(a.baro_rate)+" fpm"):"—";
+
+  $("title").textContent=label;
+  $("subtitle").textContent=(reg!=="—"?reg+" · ":"")+(typ!=="—"?typ:"Live ADS-B target");
+  $("alt").textContent=alt;$("speed").textContent=gs;$("track").textContent=tr;$("vr").textContent=vr;$("reg").textContent=reg;$("type").textContent=typ;
+  const seen=Number(a.seen);
+  $("seen").textContent="Last signal: "+(Number.isFinite(seen)?seen.toFixed(1)+" sec ago":"just now");
+  $("source").textContent="Live source: "+(provider||"proxy");
+  setStatus("LIVE","live");
+
+  if(a.lat!=null&&a.lon!=null){
+    const ll=[Number(a.lat),Number(a.lon)];
+    if(marker)marker.setLatLng(ll).setIcon(icon(a.track));
+    else marker=L.marker(ll,{icon:icon(a.track)}).addTo(map);
+    marker.bindPopup(`<b>${label}</b><br>${reg}<br>${alt} · ${gs}`);
+    map.setView(ll,8);
+  }
+  return {flight,reg};
+}
 function setupState(){
   $("setup").classList.toggle("hidden",!!PROXY);
-  if(!PROXY){
-    setStatus("SETUP","warn");
-    clearFields("Connect the Cloudflare proxy once to start live tracking.");
-  }
+  if(!PROXY){setStatus("SETUP","warn");clearFields("Connect the Cloudflare proxy once to start live tracking.");}
 }
-async function fetchAircraft(){
-  if(!PROXY){setupState();return}
-  const q=currentQuery.trim().toUpperCase();
-  if(!q)return;
-  $("title").textContent=q;
-  setStatus("UPDATING","warn");
-
+async function fetchJSON(url){
+  const ctrl=new AbortController();
+  const id=setTimeout(()=>ctrl.abort(),12000);
   try{
-    const ctrl=new AbortController();
-    const id=setTimeout(()=>ctrl.abort(),10000);
-    const r=await fetch(`${PROXY}/track?q=${encodeURIComponent(q)}`,{cache:"no-store",signal:ctrl.signal});
-    clearTimeout(id);
+    const r=await fetch(url,{cache:"no-store",signal:ctrl.signal});
     const j=await r.json();
-
     if(!r.ok) throw new Error(j.error||("HTTP "+r.status));
-    if(!j.ok || !j.data || !Array.isArray(j.data.ac) || !j.data.ac.length){
-      setStatus("NOT SEEN","warn");
-      clearFields(j.message||"Aircraft is not currently visible in the live feeds.");
+    return j;
+  } finally { clearTimeout(id); }
+}
+async function findSample(){
+  if(!PROXY){setupState();return}
+  clearInterval(timer);
+  setStatus("FINDING","warn");
+  $("title").textContent="Looking…";
+  clearFields("Asking the feed for an aircraft that is actually airborne now.");
+  try{
+    const j=await fetchJSON(`${PROXY}/sample`);
+    if(!j.ok||!j.aircraft){
+      setStatus("NO SAMPLE","bad");
+      clearFields(j.message||"No live sample returned.");
+      $("source").textContent=(j.errors||[]).join(" · ");
       return;
     }
-
-    const a=j.data.ac.find(x=>x.lat!=null&&x.lon!=null)||j.data.ac[0];
-    const flight=String(a.flight||q).trim();
-    const reg=String(a.r||a.reg||"—").trim();
-    const typ=String(a.t||a.type||"—").trim();
-    const alt=a.alt_baro==="ground"?"GROUND":(a.alt_baro!=null?fmt(a.alt_baro)+" ft":"—");
-    const gs=a.gs!=null?fmt(a.gs)+" kt":"—";
-    const tr=a.track!=null?fmt(a.track)+"°":"—";
-    const vr=a.baro_rate!=null?((Number(a.baro_rate)>0?"+":"")+fmt(a.baro_rate)+" fpm"):"—";
-
-    $("title").textContent=flight||q;
-    $("subtitle").textContent=(reg!=="—"?reg+" · ":"")+(typ!=="—"?typ:"Live ADS-B target");
-    $("alt").textContent=alt;$("speed").textContent=gs;$("track").textContent=tr;$("vr").textContent=vr;$("reg").textContent=reg;$("type").textContent=typ;
-    const seen=Number(a.seen);
-    $("seen").textContent="Last signal: "+(Number.isFinite(seen)?seen.toFixed(1)+" sec ago":"just now")+" · auto refresh every 15 sec";
-    $("source").textContent="Live source: "+(j.provider||"proxy");
-    setStatus("LIVE","live");
-
-    if(a.lat!=null&&a.lon!=null){
-      const ll=[Number(a.lat),Number(a.lon)];
-      if(marker)marker.setLatLng(ll).setIcon(icon(a.track));
-      else marker=L.marker(ll,{icon:icon(a.track)}).addTo(map);
-      marker.bindPopup(`<b>${flight||q}</b><br>${reg}<br>${alt} · ${gs}`);
-      map.setView(ll,Math.max(map.getZoom(),7));
+    const ids=renderAircraft(j.aircraft,j.provider);
+    currentQuery=(ids.reg&&ids.reg!=="—")?ids.reg:ids.flight;
+    if(currentQuery){
+      $("query").value=currentQuery;
+      timer=setInterval(trackCurrent,15000);
     }
   }catch(e){
     setStatus("PROXY ERROR","bad");
-    clearFields(e.name==="AbortError"?"The proxy timed out.":"Could not reach the Cloudflare proxy.");
+    clearFields("Could not retrieve a live sample aircraft.");
     $("source").textContent=e.message||"";
   }
 }
-function start(){
-  currentQuery=$("query").value.trim().toUpperCase();
-  $("query").value=currentQuery;
-  clearInterval(timer);
-  fetchAircraft();
-  timer=setInterval(fetchAircraft,15000);
+async function trackCurrent(){
+  if(!PROXY||!currentQuery)return;
+  try{
+    const j=await fetchJSON(`${PROXY}/track?q=${encodeURIComponent(currentQuery)}`);
+    if(!j.ok||!j.data||!Array.isArray(j.data.ac)||!j.data.ac.length){
+      setStatus("NOT SEEN","warn");
+      return;
+    }
+    const a=j.data.ac.find(x=>x.lat!=null&&x.lon!=null)||j.data.ac[0];
+    renderAircraft(a,j.provider);
+  }catch(e){
+    setStatus("PROXY ERROR","bad");
+    $("source").textContent=e.message||"";
+  }
 }
-window.trackSaved=q=>{$("query").value=q;start()};
-$("searchBtn").onclick=start;
-$("query").addEventListener("keydown",e=>{if(e.key==="Enter")start()});
+function startSearch(){
+  currentQuery=$("query").value.trim().toUpperCase();
+  if(!currentQuery)return;
+  clearInterval(timer);
+  $("title").textContent=currentQuery;
+  setStatus("UPDATING","warn");
+  trackCurrent();
+  timer=setInterval(trackCurrent,15000);
+}
+$("sampleBtn").onclick=findSample;
+$("searchBtn").onclick=startSearch;
+$("query").addEventListener("keydown",e=>{if(e.key==="Enter")startSearch()});
 $("saveProxy").onclick=()=>{
   const v=$("proxyInput").value.trim().replace(/\/+$/,"");
   if(!/^https:\/\/.+/i.test(v)){alert("Paste the full https:// Worker URL.");return}
-  PROXY=v;localStorage.setItem(KEY,PROXY);setupState();start();
+  PROXY=v;localStorage.setItem(KEY,PROXY);setupState();
 };
 $("changeProxy").onclick=()=>{
-  $("proxyInput").value=PROXY;
-  $("setup").classList.remove("hidden");
-  window.scrollTo({top:0,behavior:"smooth"});
+  $("proxyInput").value=PROXY;$("setup").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"});
 };
 setInterval(()=>{$("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"})},1000);
-initMap();
-setupState();
-if(PROXY)start();
+initMap();setupState();
 </script>
 </body></html>

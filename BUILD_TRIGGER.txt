@@ -1,3 +1,2 @@
-Aircraft Tracker V5
-Upload all files in this ZIP to the root of the Aircraft-tracker GitHub repository.
-This file exists to force a new commit so Cloudflare starts its first build.
+Aircraft Tracker V6
+Adds a live-sample endpoint so the app can find an aircraft that is actually airborne now.
