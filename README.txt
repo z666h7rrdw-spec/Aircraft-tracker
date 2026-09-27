@@ -1,6 +1,8 @@
-Aircraft Tracker V6
+Aircraft Tracker V7
 
-Upload all files in this ZIP to the root of the Aircraft-tracker GitHub repository.
-Cloudflare is already connected to the repository, so this commit should redeploy the Worker automatically.
+Upload ALL files in this ZIP to the root of the Aircraft-tracker GitHub repository and commit them.
+V7 intentionally uses a NEW Worker filename: worker-v7.js.
+wrangler.jsonc points Cloudflare to worker-v7.js, which prevents the older worker.js from being reused.
+The tracker page also includes no-cache markers and displays LIVE ADS-B TEST V7 at the top.
 
-V6 adds a 'Find a Live Aircraft Now' test button. The Worker queries a busy-airspace area and returns an aircraft actually visible in the live ADS-B feed, eliminating the need to guess a flight number or tail number for testing.
+After GitHub commits the upload, Cloudflare should automatically redeploy from the connected repository.

@@ -1,2 +1,3 @@
-Aircraft Tracker V6
-Adds a live-sample endpoint so the app can find an aircraft that is actually airborne now.
+Aircraft Tracker V7
+Forces Cloudflare to deploy worker-v7.js instead of the older worker.js.
+Also adds no-cache markers to the tracker page.
